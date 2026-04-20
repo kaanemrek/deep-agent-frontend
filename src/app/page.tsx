@@ -16,6 +16,7 @@ import {
 import { ThreadList } from "@/app/components/ThreadList";
 import { ChatProvider } from "@/providers/ChatProvider";
 import { ChatInterface } from "@/app/components/ChatInterface";
+import { AgentSelector, AGENT_OPTIONS } from "@/app/components/AgentSelector";
 
 interface HomePageInnerProps {
   config: StandaloneConfig;
@@ -37,23 +38,35 @@ function HomePageInner({
   const [mutateThreads, setMutateThreads] = useState<(() => void) | null>(null);
   const [interruptCount, setInterruptCount] = useState(0);
   const [assistant, setAssistant] = useState<Assistant | null>(null);
+  const knownAgentIds = AGENT_OPTIONS.map((o) => o.value) as string[];
+  const [selectedAgentId, setSelectedAgentId] = useState<string>(
+    knownAgentIds.includes(config.assistantId) ? config.assistantId : "deep_agent"
+  );
+
+  const handleAgentChange = useCallback(
+    (agentId: string) => {
+      setSelectedAgentId(agentId);
+      setThreadId(null);
+    },
+    [setThreadId]
+  );
 
   const fetchAssistant = useCallback(async () => {
     const isUUID =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        config.assistantId
+        selectedAgentId
       );
 
     if (isUUID) {
       // We should try to fetch the assistant directly with this UUID
       try {
-        const data = await client.assistants.get(config.assistantId);
+        const data = await client.assistants.get(selectedAgentId);
         setAssistant(data);
       } catch (error) {
         console.error("Failed to fetch assistant:", error);
         setAssistant({
-          assistant_id: config.assistantId,
-          graph_id: config.assistantId,
+          assistant_id: selectedAgentId,
+          graph_id: selectedAgentId,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           config: {},
@@ -68,7 +81,7 @@ function HomePageInner({
         // We should try to list out the assistants for this graph, and then use the default one.
         // TODO: Paginate this search, but 100 should be enough for graph name
         const assistants = await client.assistants.search({
-          graphId: config.assistantId,
+          graphId: selectedAgentId,
           limit: 100,
         });
         const defaultAssistant = assistants.find(
@@ -84,19 +97,19 @@ function HomePageInner({
           error
         );
         setAssistant({
-          assistant_id: config.assistantId,
-          graph_id: config.assistantId,
+          assistant_id: selectedAgentId,
+          graph_id: selectedAgentId,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           config: {},
           metadata: {},
           version: 1,
-          name: config.assistantId,
+          name: selectedAgentId,
           context: {},
         });
       }
     }
-  }, [client, config.assistantId]);
+  }, [client, selectedAgentId]);
 
   useEffect(() => {
     fetchAssistant();
@@ -132,10 +145,10 @@ function HomePageInner({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <div className="text-sm text-muted-foreground">
-              <span className="font-medium">Assistant:</span>{" "}
-              {config.assistantId}
-            </div>
+            <AgentSelector
+              value={selectedAgentId}
+              onChange={handleAgentChange}
+            />
             <Button
               variant="outline"
               size="sm"

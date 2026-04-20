@@ -31,7 +31,7 @@ export function ConfigDialog({
     initialConfig?.deploymentUrl || ""
   );
   const [assistantId, setAssistantId] = useState(
-    initialConfig?.assistantId || ""
+    initialConfig?.assistantId || "deep_agent"
   );
   const [langsmithApiKey, setLangsmithApiKey] = useState(
     initialConfig?.langsmithApiKey || ""
