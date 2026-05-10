@@ -223,8 +223,14 @@ function HomePageContent() {
 
   // On mount, check for saved config, otherwise show config dialog
   useEffect(() => {
+    const KNOWN_AGENT_IDS = ["deep_agent", "standard_agent"];
     const savedConfig = getConfig();
     if (savedConfig) {
+      // Migrate stale assistantId values (e.g. "agent") to "deep_agent"
+      if (!KNOWN_AGENT_IDS.includes(savedConfig.assistantId)) {
+        savedConfig.assistantId = "deep_agent";
+        saveConfig(savedConfig);
+      }
       setConfig(savedConfig);
       if (!assistantId) {
         setAssistantId(savedConfig.assistantId);

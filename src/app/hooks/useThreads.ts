@@ -37,12 +37,17 @@ export function useThreads(props: {
         return null;
       }
 
+      const KNOWN_AGENT_IDS = ["deep_agent", "standard_agent"];
+      const effectiveAssistantId = KNOWN_AGENT_IDS.includes(config.assistantId)
+        ? config.assistantId
+        : "deep_agent";
+
       return {
         kind: "threads" as const,
         pageIndex,
         pageSize,
         deploymentUrl: config.deploymentUrl,
-        assistantId: config.assistantId,
+        assistantId: effectiveAssistantId,
         apiKey,
         status: props?.status,
       };
