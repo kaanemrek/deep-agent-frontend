@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
+import { MermaidDiagram } from "@/app/components/MermaidDiagram";
 
 interface MarkdownContentProps {
   content: string;
@@ -35,10 +36,17 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(
               children?: React.ReactNode;
             }) {
               const match = /language-(\w+)/.exec(className || "");
+              const lang = match?.[1];
+
+              // Mermaid diagrams — render visually instead of as code
+              if (!inline && lang === "mermaid") {
+                return <MermaidDiagram code={String(children).replace(/\n$/, "")} />;
+              }
+
               return !inline && match ? (
                 <SyntaxHighlighter
                   style={oneDark}
-                  language={match[1]}
+                  language={lang}
                   PreTag="div"
                   className="max-w-full rounded-md text-sm"
                   wrapLines={true}

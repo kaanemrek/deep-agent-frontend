@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import {
   type Message,
@@ -12,6 +12,7 @@ import type { UseStreamThread } from "@langchain/langgraph-sdk/react";
 import type { TodoItem } from "@/app/types/types";
 import { useClient } from "@/providers/ClientProvider";
 import { useQueryState } from "nuqs";
+import { toast } from "sonner";
 
 export type StateType = {
   messages: Message[];
@@ -37,6 +38,15 @@ export function useChat({
   const [threadId, setThreadId] = useQueryState("threadId");
   const client = useClient();
 
+
+  const reloadThread = useCallback(() => {
+    const id = threadId;
+    if (id) {
+      setThreadId(null);
+      setTimeout(() => setThreadId(id), 50);
+    }
+  }, [threadId, setThreadId]);
+
   const stream = useStream<StateType>({
     assistantId: activeAssistant?.assistant_id || "",
     client: client ?? undefined,
@@ -48,7 +58,10 @@ export function useChat({
     fetchStateHistory: true,
     // Revalidate thread list when stream finishes, errors, or creates new thread
     onFinish: onHistoryRevalidate,
-    onError: onHistoryRevalidate,
+    onError: (err) => {
+      console.warn("Stream onError caught:", err);
+      onHistoryRevalidate?.();
+    },
     onCreated: onHistoryRevalidate,
     experimental_thread: thread,
   });
@@ -64,7 +77,9 @@ export function useChat({
           }),
           config: { ...(activeAssistant?.config ?? {}), recursion_limit: 100 },
         }
-      );
+      ).catch((err) => {
+        console.warn("stream.submit caught error:", err);
+      });
       // Update thread list immediately when sending a message
       onHistoryRevalidate?.();
     },
@@ -88,12 +103,12 @@ export function useChat({
           ...(isRerunningSubagent
             ? { interruptAfter: ["tools"] }
             : { interruptBefore: ["tools"] }),
-        });
+        }).catch((err) => console.warn("stream.submit caught error:", err));
       } else {
         stream.submit(
           { messages },
           { config: activeAssistant?.config, interruptBefore: ["tools"] }
-        );
+        ).catch((err) => console.warn("stream.submit caught error:", err));
       }
     },
     [stream, activeAssistant?.config]
@@ -119,7 +134,7 @@ export function useChat({
         ...(hasTaskToolCall
           ? { interruptAfter: ["tools"] }
           : { interruptBefore: ["tools"] }),
-      });
+      }).catch((err) => console.warn("stream.submit caught error:", err));
       // Update thread list when continuing stream
       onHistoryRevalidate?.();
     },
@@ -127,14 +142,14 @@ export function useChat({
   );
 
   const markCurrentThreadAsResolved = useCallback(() => {
-    stream.submit(null, { command: { goto: "__end__", update: null } });
+    stream.submit(null, { command: { goto: "__end__", update: null } }).catch((err) => console.warn("stream.submit caught error:", err));
     // Update thread list when marking thread as resolved
     onHistoryRevalidate?.();
   }, [stream, onHistoryRevalidate]);
 
   const resumeInterrupt = useCallback(
     (value: any) => {
-      stream.submit(null, { command: { resume: value } });
+      stream.submit(null, { command: { resume: value } }).catch((err) => console.warn("stream.submit caught error:", err));
       // Update thread list when resuming from interrupt
       onHistoryRevalidate?.();
     },
@@ -144,6 +159,8 @@ export function useChat({
   const stopStream = useCallback(() => {
     stream.stop();
   }, [stream]);
+
+
 
   return {
     stream,

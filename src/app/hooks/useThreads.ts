@@ -85,9 +85,6 @@ export function useThreads(props: {
         sortBy: "updated_at" as const,
         sortOrder: "desc" as const,
         status,
-        // Only filter by assistant_id metadata for deployed graphs (UUIDs)
-        // Local dev graphs don't set this metadata
-        ...(isUUID ? { metadata: { assistant_id: assistantId } } : {}),
       });
 
       return threads.map((thread): ThreadItem => {
@@ -129,7 +126,7 @@ export function useThreads(props: {
           status: thread.status,
           title,
           description,
-          assistantId,
+          assistantId: thread.metadata?.assistant_id || thread.metadata?.graph_id || "deep_agent",
         };
       });
     },

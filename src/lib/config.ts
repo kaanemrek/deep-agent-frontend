@@ -4,18 +4,23 @@ export interface StandaloneConfig {
   langsmithApiKey?: string;
 }
 
+const DEFAULT_CONFIG: StandaloneConfig = {
+  deploymentUrl: "http://127.0.0.1:2024",
+  assistantId: "deep_agent",
+};
+
 const CONFIG_KEY = "deep-agent-config";
 
-export function getConfig(): StandaloneConfig | null {
-  if (typeof window === "undefined") return null;
+export function getConfig(): StandaloneConfig {
+  if (typeof window === "undefined") return DEFAULT_CONFIG;
 
   const stored = localStorage.getItem(CONFIG_KEY);
-  if (!stored) return null;
+  if (!stored) return DEFAULT_CONFIG;
 
   try {
-    return JSON.parse(stored);
+    return { ...DEFAULT_CONFIG, ...JSON.parse(stored) };
   } catch {
-    return null;
+    return DEFAULT_CONFIG;
   }
 }
 
